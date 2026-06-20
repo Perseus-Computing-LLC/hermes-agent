@@ -94,9 +94,8 @@ import shutil
 import sys
 import threading
 import time
-from typing import Callable
-from datetime import datetime
-from typing import Any, Coroutine, Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Callable, Coroutine, Dict, List, Optional
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -279,6 +278,21 @@ _DEFAULT_CONNECT_TIMEOUT = 60    # seconds for initial connection per server
 _MAX_RECONNECT_RETRIES = 5
 _MAX_INITIAL_CONNECT_RETRIES = 3 # retries for the very first connection attempt
 _MAX_BACKOFF_SECONDS = 60
+
+
+def _to_timedelta(value):
+    """Convert a numeric timeout to ``datetime.timedelta``.
+
+    The ``mcp`` library (:pypi:`mcp` >= 1.8.0) expects ``timedelta``
+    objects for ``timeout`` and ``sse_read_timeout`` parameters in
+    ``StreamableHTTPTransport``.  Hermes stores these values as plain
+    ``int``/``float`` seconds in config.  This helper bridges the gap.
+    """
+    if isinstance(value, timedelta):
+        return value
+    if isinstance(value, (int, float)):
+        return timedelta(seconds=float(value))
+    return value  # None or unexpected — pass through
 
 # Keepalive cadence for HTTP/SSE sessions. The MCP spec lets a server expire
 # idle sessions on any TTL it chooses (Streamable HTTP "Session Management"),
@@ -2008,8 +2022,8 @@ class MCPServerTask:
             _sse_kwargs: dict = {
                 "url": url,
                 "headers": headers or None,
-                "timeout": float(connect_timeout),
-                "sse_read_timeout": 300.0,
+                "timeout": _to_timedelta(connect_timeout),
+                "sse_read_timeout": _to_timedelta(300.0),
             }
             if _oauth_auth is not None:
                 # Pass OAuth auth through to sse_client so SSE MCP servers
@@ -2114,7 +2128,7 @@ class MCPServerTask:
             # Deprecated API (mcp < 1.24.0): manages httpx client internally.
             _http_kwargs: dict = {
                 "headers": headers,
-                "timeout": float(connect_timeout),
+                "timeout": _to_timedelta(connect_timeout),
                 "verify": ssl_verify,
             }
             if _oauth_auth is not None:
