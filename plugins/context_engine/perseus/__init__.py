@@ -39,7 +39,13 @@ class PerseusContextEngine(ContextEngine):
             self._perseus_context = "\n\n".join(parts)
         self._sync()
     def on_session_reset(self): self._compressor.on_session_reset(); self._perseus_context = ""; self._sync()
-    def get_tool_schemas(self): return [{"type": "function", "function": {"name": "perseus_grep", "description": "Search context.", "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}}]
+    def get_tool_schemas(self):
+        # Return the BARE inner tool spec. The Hermes harness wraps this in
+        # {"type": "function", "function": <spec>} itself (agent/agent_init.py).
+        # Returning a pre-wrapped schema double-wraps it -> function.function.name,
+        # which strict providers (DeepSeek) reject with HTTP 400. See
+        # NousResearch/hermes-agent#47707.
+        return [{"name": "perseus_grep", "description": "Search context.", "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}]
     def handle_tool_call(self, n, a, **k):
         import json
         if n == "perseus_grep":
