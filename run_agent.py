@@ -1189,18 +1189,30 @@ class AIAgent:
     def _is_azure_openai_url(self, base_url: str = None) -> bool:
         """Return True when a base URL targets Azure OpenAI.
 
-        Azure OpenAI exposes an OpenAI-compatible endpoint at
-        ``{resource}.openai.azure.com/openai/v1`` that accepts the
-        standard ``openai`` Python client.  Unlike api.openai.com it
-        does NOT support the Responses API — gpt-5.x models are served
-        on the regular ``/chat/completions`` path — so routing decisions
-        must treat Azure separately from direct OpenAI.
+        Azure OpenAI exposes endpoints at two URL patterns:
+
+        * Legacy (pre-2024): ``{resource}.openai.azure.com/openai/v1``
+        * Modern (post-2024): ``{name}.services.ai.azure.com/``
+
+        Unlike api.openai.com it does NOT support the Responses API —
+        gpt-5.x models are served on the regular ``/chat/completions`` path —
+        so routing decisions must treat Azure separately from direct OpenAI.
+
+        Uses parsed-hostname matching so that ``models.inference.ai.azure.com``
+        (Copilot) is correctly excluded.
         """
         if base_url is not None:
-            url = str(base_url).lower()
+            hostname = base_url_hostname(base_url)
         else:
-            url = getattr(self, "_base_url_lower", "") or ""
-        return "openai.azure.com" in url
+            hostname = getattr(self, "_base_url_hostname", "") or base_url_hostname(
+                getattr(self, "_base_url_lower", "")
+            )
+        if not hostname:
+            return False
+        return (
+            hostname.endswith(".openai.azure.com")
+            or hostname.endswith(".services.ai.azure.com")
+        )
 
     def _is_github_copilot_url(self, base_url: str = None) -> bool:
         """Return True when a base URL targets GitHub Copilot's OpenAI-compatible API."""
