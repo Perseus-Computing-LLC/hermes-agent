@@ -3114,6 +3114,7 @@ def _is_payment_error(exc: Exception) -> bool:
             "credits", "insufficient funds",
             "billing",
             "payment required",
+            "can only afford",
             "out of funds", "run out of funds",
             "balance_depleted", "no usable credits",
             "model_not_supported_on_free_tier",
@@ -3171,6 +3172,7 @@ def _is_rate_limit_error(exc: Exception) -> bool:
         if not any(kw in err_lower for kw in (
             "credits", "insufficient funds", "billing",
             "payment required",
+            "can only afford",
             "out of funds", "run out of funds",
             "balance_depleted", "no usable credits",
             "model_not_supported_on_free_tier",
@@ -3426,6 +3428,7 @@ def _is_model_incompatible_error(exc: Exception) -> bool:
     if any(kw in err_lower for kw in (
         "credits", "insufficient funds", "billing", "out of funds",
         "balance_depleted", "no usable credits", "payment required",
+            "can only afford",
         "free tier", "free-tier", "not available on the free tier",
         "model_not_supported_on_free_tier", "quota",
     )):
