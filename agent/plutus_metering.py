@@ -86,12 +86,21 @@ def meter_normalized_usage(
             cfg = load_perseus_config()
         if not isinstance(cfg, Mapping):
             return None
-        if meter_fn is None:
-            from perseus.metering import meter_usage
-            meter_fn = meter_usage
-        if consume_baseline_fn is None:
-            from perseus.metering import consume_context_baseline
-            consume_baseline_fn = consume_context_baseline
+        if meter_fn is None or consume_baseline_fn is None:
+            try:
+                from perseus.metering import consume_context_baseline, meter_usage
+            except (ImportError, ModuleNotFoundError):
+                # The generated `perseus.py` artifact is a flat module, while
+                # source/development installs expose `perseus.metering`.
+                import perseus as perseus_runtime
+                consume_context_baseline = getattr(
+                    perseus_runtime, "consume_context_baseline"
+                )
+                meter_usage = getattr(perseus_runtime, "meter_usage")
+            if meter_fn is None:
+                meter_fn = meter_usage
+            if consume_baseline_fn is None:
+                consume_baseline_fn = consume_context_baseline
         baseline = consume_baseline_fn()
         event = build_usage_event(
             usage, provider=provider, model=model, baseline=baseline
