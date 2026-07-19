@@ -246,7 +246,9 @@ class TestCmdUpdateBranchFallback:
         ), patch.object(hm, "_sync_with_upstream_if_needed") as sync_mock:
             cmd_update(mock_args)
 
-        sync_mock.assert_called_once_with(["git"], PROJECT_ROOT)
+        sync_mock.assert_called_once_with(
+            ["git", "-c", "windows.appendAtomically=false"], PROJECT_ROOT
+        )
         captured = capsys.readouterr()
         assert "Already up to date!" in captured.out
 
@@ -267,6 +269,7 @@ class TestCmdUpdateBranchFallback:
         import subprocess as _subprocess
         build_ok = _subprocess.CompletedProcess([], 0, stdout="", stderr="")
         with patch.object(hm, "_is_termux_env", return_value=False), \
+             patch("hermes_constants.find_node_executable", return_value="/usr/bin/npm"), \
              patch.object(hm, "_run_with_idle_timeout", return_value=build_ok) as mock_idle:
             cmd_update(mock_args)
 

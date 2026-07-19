@@ -668,54 +668,6 @@ def _build_fal_edit_payload(
     }
 
 
-def _build_fal_edit_payload(
-    model_id: str,
-    prompt: str,
-    image_urls: list,
-    aspect_ratio: str = DEFAULT_ASPECT_RATIO,
-    seed: Optional[int] = None,
-    overrides: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """Build a FAL *edit* request payload (image-to-image) from unified inputs.
-
-    Every FAL edit endpoint takes ``image_urls`` (a list of source/reference
-    image URLs) plus the prompt. Size handling differs from text-to-image:
-    most edit endpoints auto-infer output dimensions from the input image, so
-    we only send ``image_size`` / ``aspect_ratio`` when the edit endpoint's
-    ``edit_supports`` whitelist accepts it. Keys outside ``edit_supports`` are
-    stripped before submission.
-    """
-    meta = FAL_MODELS[model_id]
-    edit_supports = meta.get("edit_supports") or set()
-    size_style = meta["size_style"]
-    sizes = meta["sizes"]
-
-    aspect = (aspect_ratio or DEFAULT_ASPECT_RATIO).lower().strip()
-    if aspect not in sizes:
-        aspect = DEFAULT_ASPECT_RATIO
-
-    payload: Dict[str, Any] = dict(meta.get("defaults", {}))
-    payload["prompt"] = (prompt or "").strip()
-    payload["image_urls"] = list(image_urls)
-
-    # Only express output size when the edit endpoint advertises the key.
-    # gpt-image-2 edit auto-infers size from the input, so `image_size` is
-    # intentionally absent from its edit_supports whitelist.
-    if size_style in {"image_size_preset", "gpt_literal"} and "image_size" in edit_supports:
-        payload["image_size"] = sizes[aspect]
-    elif size_style == "aspect_ratio" and "aspect_ratio" in edit_supports:
-        payload["aspect_ratio"] = sizes[aspect]
-
-    if seed is not None and isinstance(seed, int):
-        payload["seed"] = seed
-
-    if overrides:
-        for k, v in overrides.items():
-            if v is not None:
-                payload[k] = v
-
-    return {k: v for k, v in payload.items() if k in edit_supports}
-
 
 # ---------------------------------------------------------------------------
 # Upscaler
